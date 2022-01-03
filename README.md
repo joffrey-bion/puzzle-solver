@@ -49,6 +49,10 @@ Checking if a piece fits or adding a piece to the grid can therefore be made ver
 
 ### Outputting solutions
 
+There are a total of **301350 unique solutions** to this puzzle.
+We can consider only half of those if we don't want to count the solutions that are identical when rotating the whole
+grid by 180 degrees.
+
 The raw output of bit mask numbers is barely useful to use it in the puzzle.
 
 A more "visual" output would be for instance a text file with 5 lines, each of 10 characters, representing the slots of the grid.
