@@ -2,20 +2,21 @@ package org.hildan.puzzle
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
-import java.io.File
 import javax.imageio.ImageIO
-import kotlin.io.path.Path
-import kotlin.io.path.writeText
+import kotlin.io.path.createTempDirectory
+import kotlin.io.path.writeLines
 
-private const val SOLUTIONS_DIR = "solutions"
 private const val OUTPUT_AS_PNG = true
-private val EXTENSION = if (OUTPUT_AS_PNG) "png" else "txt"
 
-fun main(): Unit = runBlocking(Dispatchers.Default) {
+private val solutionsDir = createTempDirectory("solutions-")
+private val solutionsExt = if (OUTPUT_AS_PNG) "png" else "txt"
+
+fun main(): Unit = runBlocking {
     println("Finding valid choices for the sides of the pieces...")
     val validPieceCombinations = SideCombinationsSolver(Piece.ALL).findCombinations(N_GRID_SLOTS)
     println("Found ${validPieceCombinations.size} unique combinations of piece sides covering the whole grid")
 
+    println("Will write solution files to '$solutionsDir'")
     println("Searching solutions for each combination of sides...")
     val solutionsChannel = launchSolversInParallel(validPieceCombinations)
 
@@ -24,13 +25,13 @@ fun main(): Unit = runBlocking(Dispatchers.Default) {
         solutionsChannel.consumeEach { s ->
             nSolutions++
 
-            writeSolutionFile(s, index = nSolutions)
+            s.writeFile()
 
-            if (nSolutions % 10 == 0) {
+            if (nSolutions % 16 == 0) {
                 print("\r$nSolutions unique solutions found so far")
             }
         }
-        println("\rDone! $nSolutions unique solutions written to directory '$SOLUTIONS_DIR'")
+        println("\rDone! $nSolutions unique solutions found")
     }
 }
 
@@ -47,25 +48,23 @@ private fun CoroutineScope.launchSolversInParallel(validPieceCombinations: List<
         }
     }
 
-private fun writeSolutionFile(solution: Solution, index: Int) {
-    // using the index because 5204 hashes have duplicates (out of 301350 solutions)
-    val name = "solution-$index-${solution.hashCode().toUInt().toString(16)}"
-    val filename = "$SOLUTIONS_DIR/$name.$EXTENSION"
+private fun Solution.writeFile() {
+    val solutionTextLines = asTextLines()
+    val solutionString = solutionTextLines.joinToString("-")
+    val solutionPath = solutionsDir.resolve("solution-$solutionString.$solutionsExt")
     if (OUTPUT_AS_PNG) {
-        ImageIO.write(solution.toImage(), "png", File(filename))
+        ImageIO.write(toImage(), "png", solutionPath.toFile())
     } else {
-        Path(filename).writeText(solution.toGridString())
+        solutionPath.writeLines(solutionTextLines)
     }
 }
 
-private fun Solution.toGridString() = buildString {
-    (0 until GRID_HEIGHT).forEach { row ->
-        (0 until GRID_WIDTH).forEach { col ->
-            val placedPieceHere = this@toGridString.firstOrNull { placedPiece ->
-                Cell(row, col).isInMask(placedPiece.gridMask)
-            }
-            append(placedPieceHere?.color?.ordinal?.digitToChar() ?: '.')
-        }
-        appendLine()
+private fun Solution.asTextLines() = (0 until GRID_HEIGHT).map { row ->
+    (0 until GRID_WIDTH).joinToString("") { col ->
+        pieceAt(row, col)?.color?.ordinal?.digitToChar()?.toString() ?: "."
     }
+}
+
+private fun Solution.pieceAt(row: Int, col: Int) = firstOrNull { placedPiece ->
+    Cell(row, col).isInMask(placedPiece.gridMask)
 }
