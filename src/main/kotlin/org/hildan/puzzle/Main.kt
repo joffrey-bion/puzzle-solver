@@ -45,12 +45,15 @@ private fun writeImageFile(solution: Solution, index: Int) {
     ImageIO.write(solution.toImage(), "png", File(filename))
 }
 
+// pieces are always placed in the same order, so we could get rid of the color information and just use GridMasks here
 typealias Solution = List<PlacedPiece>
 
 data class PlacedPiece(val color: Color, val gridMask: GridMask)
 
 class GridSolver(piecesSide: Iterable<PieceSide>) {
     private var grid = EMPTY_GRID
+
+    // we could save some time by moving an index on this list instead of removing and re-adding elements
     private val piecesToPlace = piecesSide.toMutableList()
 
     // This auto-boxes GridMask's Long, and could be improved using a LongArray instead of a Map.
