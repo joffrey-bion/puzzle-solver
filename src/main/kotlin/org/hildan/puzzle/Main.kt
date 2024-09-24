@@ -11,7 +11,7 @@ private const val OUTPUT_AS_PNG = true
 private val solutionsDir = createTempDirectory("solutions-")
 private val solutionsExt = if (OUTPUT_AS_PNG) "png" else "txt"
 
-fun main(): Unit = runBlocking {
+suspend fun main() = coroutineScope {
     println("Finding valid choices for the sides of the pieces...")
     val validPieceCombinations = SideCombinationsSolver(Piece.ALL).findCombinations(N_GRID_SLOTS)
     println("Found ${validPieceCombinations.size} unique combinations of piece sides covering the whole grid")
